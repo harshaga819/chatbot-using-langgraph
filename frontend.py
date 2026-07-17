@@ -2,6 +2,7 @@ import streamlit as st
 from backend import chat_reply, retrive_old_chats
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
 import uuid
+from upload_file import upload_file
 
 # ***************************functions********************************************************
 def thread_id_generator():
@@ -35,20 +36,37 @@ if 'chat_history' not in st.session_state:
 if 'thread_id' not in st.session_state:
     st.session_state['thread_id'] = thread_id_generator()
 
+if "ingested_docs" not in st.session_state:
+    st.session_state["ingested_docs"] = {}
+
 add_thread_id(st.session_state['thread_id'])
+
+threads = st.session_state["chat_history"][::-1]
+selected_thread = None
 
 
 #***************************SideBar***********************************************************
 
-st.sidebar.title("Private ChatBot")
-
-if st.sidebar.button("Upload PDF"):
-    pass
+st.sidebar.title("Your Own Chatbot")
 
 if st.sidebar.button("New Chat"):
     new_chat()
 
-st.sidebar.header("My Conrevsation")
+thread_key = str(st.session_state["thread_id"])
+thread_docs = st.session_state["ingested_docs"].setdefault(thread_key, {})
+
+uploaded_pdf= st.sidebar.file_uploader("Upload a PDF for this chat", type=["pdf"], key=f"uploader_{st.session_state['thread_id']}"key=f"uploader_{st.session_state['thread_id']}")
+if uploaded_pdf: 
+    if uploaded_pdf.name in thread_docs:
+        st.sidebar.info(f"`{uploaded_pdf.name}` already processed for this chat.")
+    else:
+        with st.sidebar.status("Indexing PDF…", expanded=True) as status_box:
+            summary = upload_file(uploaded_pdf.getvalue(), thread_id=thread_key, filename=uploaded_pdf.name,)
+            thread_docs[uploaded_pdf.name] = summary
+            status_box.update(label="PDF indexed", state="complete", expanded=False)
+
+
+st.sidebar.header("My Conrevsations")
 n=0
 for thread_id in st.session_state['chat_history'][::-1]:
     n+= 1
@@ -90,7 +108,8 @@ if human_message:
     with st.chat_message('assistant'):
         def ai_only_stream():
             for chunk, metadata in chat_reply.stream(
-                {"messages":[HumanMessage(content=human_message)]},
+                {"messages":[HumanMessage(content=human_message)],
+                 "thread_id": str(st.session_state["thread_id"]),},
                  config = config1,
                  stream_mode= 'messages',
             ):

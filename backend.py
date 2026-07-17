@@ -5,7 +5,7 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.sqlite import SqliteSaver, sqlite3
 from langchain_core.messages import BaseMessage, HumanMessage
-from tools import get_stock_price, calculator, search_tool
+from tools import get_stock_price, rag_tool, search_tool
 from langgraph.prebuilt import ToolNode, tools_condition
 
 load_dotenv()
@@ -18,11 +18,12 @@ llm = ChatGroq(
     temperature=0.3
 )
 
-tools= [get_stock_price, calculator, search_tool]
+tools= [get_stock_price, rag_tool, search_tool]
 llm_with_tools= llm.bind_tools(tools)
 
 class state(TypedDict):
     messages : Annotated[list[BaseMessage], add_messages]
+    thread_id : str
 
 def chat(state):
     message = state["messages"]

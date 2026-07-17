@@ -1,6 +1,10 @@
 from langchain_core.tools import tool
 from langchain_community.tools import DuckDuckGoSearchRun
 import requests
+from typing import Dict, Optional
+from upload_file import get_retriever 
+from typing_extensions import Annotated
+from langgraph.prebuilt import InjectedState
 
 
 search= DuckDuckGoSearchRun(region="us-en")
@@ -18,28 +22,26 @@ def search_tool(query: str) -> str:
 
 
 @tool
-def calculator(first_num: float, second_num: float, operation: str) -> dict:
+def rag_tool(query: str, state: Annotated[dict, InjectedState]) -> dict:
     """
-    Perform a basic arithmetic operation on two numbers.
-    Supported operations: add, sub, mul, div
+    Retrieve relevant information from the uploaded PDF for this chat thread.
+    Always include the thread_id when calling this tool.
     """
-    try:
-        if operation == "add":
-            result = first_num + second_num
-        elif operation == "sub":
-            result = first_num - second_num
-        elif operation == "mul":
-            result = first_num * second_num
-        elif operation == "div":
-            if second_num == 0:
-                return {"error": "Division by zero is not allowed"}
-            result = first_num / second_num
-        else:
-            return {"error": f"Unsupported operation '{operation}'"}
-        
-        return {"first_num": first_num, "second_num": second_num, "operation": operation, "result": result}
-    except Exception as e:
-        return {"error": str(e)}
+    thread_id = state["thread_id"]
+    retriever = get_retriever(thread_id)
+    if retriever is None:
+        return {
+            "error": "No document indexed for this chat. Upload a PDF first.",
+            "query": query,
+        }
+
+    result = retriever.invoke(query)
+    context = [doc.page_content for doc in result]
+
+    return {
+        "query": query,
+        "context": context,
+    }
 
 
 
