@@ -55,7 +55,8 @@ if st.sidebar.button("New Chat"):
 thread_key = str(st.session_state["thread_id"])
 thread_docs = st.session_state["ingested_docs"].setdefault(thread_key, {})
 
-uploaded_pdf= st.sidebar.file_uploader("Upload a PDF for this chat", type=["pdf"], key=f"uploader_{st.session_state['thread_id']}"key=f"uploader_{st.session_state['thread_id']}")
+uploaded_pdf= st.sidebar.file_uploader("Upload a PDF for this chat", type=["pdf"], key=f"uploader_{st.session_state['thread_id']}")
+
 if uploaded_pdf: 
     if uploaded_pdf.name in thread_docs:
         st.sidebar.info(f"`{uploaded_pdf.name}` already processed for this chat.")
