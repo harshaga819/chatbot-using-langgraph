@@ -2,7 +2,7 @@ import streamlit as st
 from backend import chat_reply, retrive_old_chats
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
 import uuid
-from upload_file import upload_file
+from retriever_manager import upload_file, process_website
 
 # ***************************functions********************************************************
 def thread_id_generator():
@@ -26,10 +26,34 @@ def conversation_loading(thread_id):
         return []
     return state.values['messages']
 
+@st.dialog("Chat with Website")
+def website_popup():
+    url = st.text_input("Website URL", placeholder="https://example.com")
+
+    if st.button("Process Website"):
+        if not url.startswith(("http://", "https://")):
+            st.error("Please enter a valid URL.")
+            st.session_state.show_popup = False
+            st.rerun()
+        try:
+            with st.spinner("Processing website..."):
+                process_website(url=url, thread_id=str(st.session_state["thread_id"]))
+
+            st.success("Website processed successfully.")
+
+            st.session_state.show_popup = False
+            st.rerun()
+        except Exception as e:
+            st.error(str(e))
+
+
 #********************************Session State************************************************
 
 if 'message_history' not in st.session_state:
     st.session_state['message_history'] = []
+
+if "show_popup" not in st.session_state:
+    st.session_state.show_popup = False
 
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = retrive_old_chats()
@@ -43,6 +67,10 @@ if "ingested_docs" not in st.session_state:
 if "chat_names" not in st.session_state:
     st.session_state["chat_names"] = {}
 
+for i, thread_id in enumerate(st.session_state["chat_history"], start=1):
+    if thread_id not in st.session_state["chat_names"]:
+        st.session_state["chat_names"][thread_id] = f"Chat-{i}"
+
 add_thread_id(st.session_state['thread_id'], len(st.session_state["chat_names"]) + 1)
 
 threads = st.session_state["chat_history"][::-1]
@@ -52,6 +80,13 @@ selected_thread = None
 #***************************SideBar***********************************************************
 
 st.sidebar.title("Your Own Chatbot")
+
+if st.sidebar.button("Chat with website"):
+    new_chat()
+    st.session_state.show_popup = True
+
+if st.session_state.show_popup:
+    website_popup()
 
 if st.sidebar.button("New Chat"):
     new_chat()

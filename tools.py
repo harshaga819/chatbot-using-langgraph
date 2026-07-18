@@ -1,8 +1,9 @@
 from langchain_core.tools import tool
 from langchain_community.tools import DuckDuckGoSearchRun
 import requests
+import os
 from typing import Dict, Optional
-from upload_file import get_retriever 
+from retriever_manager import get_retriever 
 from typing_extensions import Annotated
 from langgraph.prebuilt import InjectedState
 
@@ -51,6 +52,7 @@ def get_stock_price(symbol: str) -> dict:
     Fetch latest stock price for a given symbol (e.g. 'AAPL', 'TSLA') 
     using Alpha Vantage with API key in the URL.
     """
-    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey=C9PE94QUEW9VWGFM"
+    apikey = os.getenv("ALPHAVANTAGE_API_KEY")
+    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={apikey}"
     r = requests.get(url)
     return r.json()
