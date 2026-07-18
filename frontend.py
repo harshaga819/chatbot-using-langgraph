@@ -10,14 +10,15 @@ def thread_id_generator():
     return thread_id
 
 def new_chat():
-    id= thread_id_generator()
-    st.session_state['thread_id']= id
+    thread_id= thread_id_generator()
+    st.session_state['thread_id']= thread_id
     st.session_state['message_history']= []
-    add_thread_id(st.session_state['thread_id'])
+    add_thread_id(st.session_state['thread_id'], len(st.session_state["chat_names"]) + 1)
 
-def add_thread_id(thread_id):
+def add_thread_id(thread_id, chat_number):
     if thread_id not in st.session_state['chat_history']:
         st.session_state['chat_history'].append(thread_id)
+        st.session_state['chat_names'][thread_id]= f"chat-{chat_number}"
 
 def conversation_loading(thread_id):
     state= chat_reply.get_state(config= {"configurable": {"thread_id": thread_id}})
@@ -39,7 +40,10 @@ if 'thread_id' not in st.session_state:
 if "ingested_docs" not in st.session_state:
     st.session_state["ingested_docs"] = {}
 
-add_thread_id(st.session_state['thread_id'])
+if "chat_names" not in st.session_state:
+    st.session_state["chat_names"] = {}
+
+add_thread_id(st.session_state['thread_id'], len(st.session_state["chat_names"]) + 1)
 
 threads = st.session_state["chat_history"][::-1]
 selected_thread = None
@@ -67,11 +71,13 @@ if uploaded_pdf:
             status_box.update(label="PDF indexed", state="complete", expanded=False)
 
 
-st.sidebar.header("My Conrevsations")
-n=0
+st.sidebar.header("My Conversations")
+
 for thread_id in st.session_state['chat_history'][::-1]:
-    n+= 1
-    if st.sidebar.button(f'chat-{n}'):
+
+    title = st.session_state["chat_names"][thread_id]
+
+    if st.sidebar.button(title):
         st.session_state['thread_id']= thread_id
         messages= conversation_loading(thread_id)
 
@@ -80,9 +86,13 @@ for thread_id in st.session_state['chat_history'][::-1]:
         for message in messages:
             if isinstance(message, HumanMessage):
                 role= 'user'
-            else:
-                role= 'assistant'
-            temp_messages.append({'role': role, 'content': message.content})
+                temp_messages.append({"role": "user", "content": message.content})
+            elif isinstance(message, AIMessage):
+                if message.content:
+                    temp_messages.append({"role": "assistant", "content": message.content})
+            elif isinstance(message, ToolMessage):
+            # Ignore tool outputs
+                continue
         
         st.session_state['message_history']= temp_messages
 
