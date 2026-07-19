@@ -5,27 +5,33 @@ import uuid
 from retriever_manager import upload_file, process_website
 
 # ***************************functions********************************************************
+
+# It generate new thread id
 def thread_id_generator():
     thread_id= uuid.uuid4()
     return thread_id
 
+# It create new chat and reset all the message history, add chat name 
 def new_chat():
     thread_id= thread_id_generator()
     st.session_state['thread_id']= thread_id
     st.session_state['message_history']= []
     add_thread_id(st.session_state['thread_id'], len(st.session_state["chat_names"]) + 1)
 
+# It adds the thread id in chat_history list and also add the chat name in chat_names disc
 def add_thread_id(thread_id, chat_number):
     if thread_id not in st.session_state['chat_history']:
         st.session_state['chat_history'].append(thread_id)
         st.session_state['chat_names'][thread_id]= f"chat-{chat_number}"
 
+# It load the conversation history
 def conversation_loading(thread_id):
     state= chat_reply.get_state(config= {"configurable": {"thread_id": thread_id}})
     if not state.values:
         return []
     return state.values['messages']
 
+# It display the popup screen and takes website url as input and process it 
 @st.dialog("Chat with Website")
 def website_popup():
     url = st.text_input("Website URL", placeholder="https://example.com")
