@@ -83,6 +83,8 @@ threads = st.session_state["chat_history"][::-1]
 selected_thread = None
 
 
+st.title("   Agentic RAG ChatBot")
+
 #***************************SideBar***********************************************************
 
 st.sidebar.title("Your Own Chatbot")
